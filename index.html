@@ -1,0 +1,438 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Alumni Meet Puzzle</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@500;600;700;800&family=Pinyon+Script&family=Gloock&family=Fraunces:ital,opsz,wght@0,9..144,500;1,9..144,600&display=swap">
+<style>
+/* Layout: one phone-width column — a word-grouping puzzle that resolves into a glowing ruby "save the date" card */
+:root{
+  --bg:#F6F5EF; --fg:#1D1C17; --muted:#6C6A5E; --line:#CBC8B8;
+  --tile:#E6E4D7; --tile-fg:#1D1C17; --tile-sel:#56544A; --tile-sel-fg:#FAF8F0;
+  --g1:#F2D35B; --g2:#93C46B; --g3:#9DBAEA; --g4:#D98CA6; --bar-fg:#1D1C17;
+  --ruby-1:#5E0D25; --ruby-2:#33061A; --ruby-3:#1A030C;
+  --cream:#FCEBCB; --amber:#F08A3C; --gold:#E9C27A;
+  --f-ui:"Libre Franklin","Franklin Gothic Medium","Arial Narrow",Arial,sans-serif;
+  --f-script:"Pinyon Script","Snell Roundhand","Segoe Script",cursive;
+  --f-display:"Gloock","Didot","Bodoni 72",Georgia,serif;
+  --f-serif:"Fraunces",Georgia,"Times New Roman",serif;
+  --tile-h:clamp(60px,17vw,78px);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#151412; --fg:#EEECE3; --muted:#9C998C; --line:#46443C;
+  --tile:#302F2A; --tile-fg:#EEECE3; --tile-sel:#E8E5D6; --tile-sel-fg:#151412; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#151412; --fg:#EEECE3; --muted:#9C998C; --line:#46443C;
+  --tile:#302F2A; --tile-fg:#EEECE3; --tile-sel:#E8E5D6; --tile-sel-fg:#151412; color-scheme:dark}
+
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-ui);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  -webkit-tap-highlight-color:transparent;overflow-x:hidden}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-user-select:none;user-select:none}
+button:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+
+.app{max-width:460px;margin:0 auto;padding-block:22px 28px;display:flex;flex-direction:column;gap:14px}
+.top{display:grid;grid-template-columns:1fr auto 1fr;align-items:start}
+.head{text-align:center;grid-column:2}
+.head h1{margin:0;font-weight:800;font-size:20px;letter-spacing:.01em;text-transform:uppercase;text-wrap:balance}
+.head p{margin:4px 0 0;font-size:14px;color:var(--muted);font-weight:500}
+.sound{grid-column:3;justify-self:end;border:1px solid var(--line);background:none;border-radius:999px;
+  font-size:12px;font-weight:600;padding:5px 10px;color:var(--muted);white-space:nowrap}
+.tabs{display:flex;justify-content:center;gap:22px}
+.tabs button{background:none;border:0;padding:4px 2px 6px;font-size:14px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent}
+.tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--fg)}
+.prompt{text-align:center;margin:0;font-size:15px;font-weight:500}
+
+.board{position:relative;display:flex;flex-direction:column;gap:8px}
+#solved{display:flex;flex-direction:column;gap:8px}
+#solved:empty{display:none}
+#grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.tile{height:var(--tile-h);border:0;border-radius:6px;background:var(--tile);color:var(--tile-fg);
+  font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:.01em;white-space:nowrap;overflow:hidden;
+  padding:0 4px;transition:background-color .12s,color .12s,transform .12s,opacity .18s;will-change:transform}
+.tile:active{transform:scale(.95)}
+.tile.sel{background:var(--tile-sel);color:var(--tile-sel-fg)}
+.tile.jump{animation:jump .32s ease}
+.tile.shake{animation:shake .38s ease}
+.tile.out{opacity:0;transform:scale(.85)}
+@keyframes jump{40%{transform:translateY(-9px)}}
+@keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+
+.bar{height:var(--tile-h);border-radius:6px;color:var(--bar-fg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center;padding:0 10px;animation:barIn .38s cubic-bezier(.2,.9,.3,1.2)}
+.bar b{font-weight:800;font-size:15px;text-transform:uppercase;letter-spacing:.04em}
+.bar span{font-weight:500;font-size:14px;text-transform:uppercase;letter-spacing:.02em}
+@keyframes barIn{from{transform:scale(.88);opacity:0}}
+
+.toast{position:absolute;left:50%;top:-6px;transform:translate(-50%,-100%);background:var(--fg);color:var(--bg);
+  font-weight:700;font-size:14px;padding:9px 14px;border-radius:6px;opacity:0;pointer-events:none;transition:opacity .2s;white-space:nowrap;z-index:5}
+.toast.on{opacity:1}
+
+.mistakes{display:flex;justify-content:center;align-items:center;gap:10px;font-size:14px;font-weight:500;margin-top:6px}
+.dots{display:flex;gap:8px}
+.dots i{width:12px;height:12px;border-radius:50%;background:var(--tile-sel);transition:transform .3s,opacity .3s}
+.dots i.gone{transform:scale(0);opacity:0}
+
+.controls{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+.pill{border:1px solid var(--fg);background:none;border-radius:999px;padding:11px 18px;font-weight:600;font-size:15px;transition:background-color .15s,color .15s,opacity .15s}
+.pill:disabled{opacity:.35;cursor:default}
+.pill.primary:not(:disabled){background:var(--fg);color:var(--bg)}
+
+.hints{display:flex;flex-direction:column;gap:14px;font-size:15px;line-height:1.5}
+.hints p{margin:0}
+.hints .tools{display:flex;flex-wrap:wrap;gap:10px}
+.hints small{color:var(--muted);font-size:13px}
+.legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.legend span{border-radius:6px;padding:8px 10px;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--bar-fg)}
+
+/* ---------- finale ---------- */
+#finale{position:fixed;inset:0;z-index:40;color:var(--cream);overflow:hidden;
+  background:radial-gradient(120% 80% at 50% 42%,var(--ruby-1) 0%,var(--ruby-2) 55%,var(--ruby-3) 100%);
+  padding:env(safe-area-inset-top,0px) max(16px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(16px,env(safe-area-inset-left,0px))}
+.scene{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(18px,4.5vh,40px);text-align:center;padding:24px 20px;transition:opacity .5s}
+.scene.gone{opacity:0}
+.glow{text-shadow:0 0 6px rgba(255,214,160,.55),0 0 24px rgba(255,140,80,.35)}
+.f-script{font-family:var(--f-script);font-weight:400;margin:0;line-height:1;font-size:clamp(62px,19vw,108px)}
+.f-script small{display:block;font-family:var(--f-ui);font-weight:700;font-size:13px;letter-spacing:.32em;text-transform:uppercase;color:var(--amber);text-shadow:none;margin-top:10px}
+.f-logo{margin:0;width:min(86vw,420px);line-height:0}
+.f-logo img{width:100%;height:auto;filter:drop-shadow(0 0 22px rgba(255,180,100,.22))}
+.f-date{font-family:var(--f-display);font-size:clamp(42px,12.5vw,70px);margin:0;letter-spacing:.01em;line-height:1}
+.f-save{font-family:var(--f-serif);font-style:italic;font-weight:600;color:var(--amber);font-size:clamp(28px,8vw,40px);margin:0;text-shadow:0 0 18px rgba(240,138,60,.3)}
+.f-meta{font-weight:600;font-size:13px;letter-spacing:.16em;text-transform:uppercase;line-height:1.9;margin:0;color:var(--gold)}
+.f-cta{font-family:var(--f-serif);font-weight:500;font-size:clamp(28px,8vw,40px);line-height:1.3;margin:0;text-wrap:balance}
+.f-jub{font-weight:600;font-size:13px;letter-spacing:.14em;text-transform:uppercase;line-height:2;margin:0;color:var(--gold)}
+.rev{opacity:0;filter:blur(10px);transform:translateY(8px) scale(.98);transition:opacity 1s ease,filter 1s ease,transform 1.1s ease}
+.rev.in{opacity:1;filter:blur(0);transform:none}
+.sweep{position:absolute;top:-10%;bottom:-10%;width:70%;left:15%;pointer-events:none;opacity:0;
+  background:radial-gradient(50% 60% at 50% 50%,rgba(255,200,215,.55),rgba(255,160,190,.18) 55%,transparent 75%)}
+.sweep.go{animation:sweep 1.1s ease-in-out}
+@keyframes sweep{0%{opacity:0;transform:translateX(-35%)}45%{opacity:1}100%{opacity:0;transform:translateX(35%)}}
+.f-ctrl{position:absolute;left:0;right:0;bottom:calc(18px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;gap:10px;opacity:0;transition:opacity .6s;pointer-events:none}
+.f-ctrl.on{opacity:.75;pointer-events:auto}
+.f-ctrl button{background:none;border:1px solid rgba(252,235,203,.45);color:var(--cream);border-radius:999px;padding:8px 14px;font-size:13px;font-weight:600}
+.f-ctrl button:focus-visible{outline-color:var(--cream)}
+
+#glitch{position:fixed;inset:0;z-index:60;pointer-events:none}
+#glitch .slice{position:absolute;overflow:hidden}
+
+@media (prefers-reduced-motion: reduce){
+  .tile,.bar,.rev,.scene{transition-duration:.01s!important;animation:none!important}
+  .rev{filter:none;transform:none}
+  .sweep.go{animation:none}
+}
+</style>
+
+<main class="app" id="app">
+  <div class="top">
+    <div class="head">
+      <h1 id="title">Alumni Meet 2026</h1>
+      <p id="byline">Created by VES Polytechnic Alumni</p>
+    </div>
+    <button class="sound" id="soundBtn" aria-pressed="true">Sound on</button>
+  </div>
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tabGame" aria-selected="true">Game</button>
+    <button role="tab" id="tabHints" aria-selected="false">Hints</button>
+  </div>
+
+  <section id="gameView" class="board-wrap" style="flex-direction:column;gap:14px">
+    <p class="prompt">Create four groups of four!</p>
+    <div class="board">
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      <div id="solved"></div>
+      <div id="grid"></div>
+    </div>
+    <div class="mistakes"><span>Mistakes remaining:</span><span class="dots" id="dots"><i></i><i></i><i></i><i></i></span></div>
+    <div class="controls">
+      <button class="pill" id="shuffleBtn">Shuffle</button>
+      <button class="pill" id="clearBtn" disabled>Deselect all</button>
+      <button class="pill primary" id="submitBtn" disabled>Submit</button>
+    </div>
+  </section>
+
+  <section id="hintView" class="hints" hidden>
+    <p>Four phrases are hidden in the grid. Each one answers a question about the meet:</p>
+    <div class="legend">
+      <span style="background:var(--g1)">What</span><span style="background:var(--g2)">When</span>
+      <span style="background:var(--g3)">Time</span><span style="background:var(--g4)">Where</span>
+    </div>
+    <p><strong>Recording tools</strong><br><small>Use these when screen-recording the reel.</small></p>
+    <div class="tools">
+      <button class="pill" id="demoBtn">Play demo</button>
+      <button class="pill" id="finaleBtn">Jump to finale</button>
+      <button class="pill" id="resetBtn">Start over</button>
+    </div>
+    <small>Play demo taps the tiles itself and solves the groups in order, then plays the finale.</small>
+  </section>
+</main>
+
+<section id="finale" hidden aria-live="polite">
+  <div class="sweep" id="sweep"></div>
+  <div class="scene" id="sceneA">
+    <h2 class="f-logo rev" id="fTitle"><img src="alumni-meet-title.webp" alt="Alumni Meet 2026. Where it all began" width="1100" height="778"></h2>
+    <p class="f-date glow rev" id="fDate">DECEMBER 19.</p>
+    <p class="f-save rev" id="fSave">Save the date!</p>
+    <p class="f-meta rev" id="fMeta">Saturday · 5:30 PM onwards<br>VES Polytechnic, Chembur</p>
+  </div>
+  <div class="scene gone" id="sceneB">
+    <h2 class="f-script glow rev" id="fLink">Link in Bio.</h2>
+    <p class="f-cta glow rev" id="fCta">Register today.<br>Alumni only.</p>
+    <p class="f-jub rev" id="fJub">Ruby Jubilee · Batch of 1986<br>Silver Jubilee · Batch of 2002</p>
+  </div>
+  <div class="f-ctrl" id="fCtrl">
+    <button id="againBtn">Replay finale</button>
+    <button id="restartBtn">Play puzzle again</button>
+  </div>
+</section>
+<div id="glitch" hidden></div>
+
+<script>
+/* ===== Edit the event here ===== */
+const GROUPS = [
+  {label:"What",  phrase:"It's Alumni Meet 2026",           words:["IT'S","ALUMNI","MEET","2026"],          color:"var(--g1)"},
+  {label:"When",  phrase:"On Saturday, December 19",        words:["ON","SATURDAY","DECEMBER","19"],        color:"var(--g2)"},
+  {label:"Time",  phrase:"From 5:30 PM onwards",            words:["FROM","5:30","PM","ONWARDS"],           color:"var(--g3)"},
+  {label:"Where", phrase:"At VES Polytechnic, Chembur",     words:["AT","VES","POLYTECHNIC","CHEMBUR"],     color:"var(--g4)"}
+];
+/* Starting layout (row by row). Fixed so every take of the reel looks the same. */
+const START_ORDER = ["5:30","AT","FROM","DECEMBER","ALUMNI","ON","CHEMBUR","PM","VES","2026","IT'S","SATURDAY","19","ONWARDS","MEET","POLYTECHNIC"];
+
+/* ===== state ===== */
+const $ = id => document.getElementById(id);
+const groupOf = {}; GROUPS.forEach((g,i)=>g.words.forEach(w=>groupOf[w]=i));
+let order, selected, solved, mistakes, guessed, busy, finaleTimers=[];
+const els = {};
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ===== sound (synthesised, no files) ===== */
+let soundOn = true, actx;
+function ac(){ if(!actx){ try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return actx; }
+function tone(f,d,type='sine',g=.08,delay=0,attack=.005){
+  if(!soundOn) return; const c=ac(); if(!c) return;
+  const t=c.currentTime+delay, o=c.createOscillator(), v=c.createGain();
+  o.type=type; o.frequency.value=f; v.gain.setValueAtTime(0,t);
+  v.gain.linearRampToValueAtTime(g,t+attack); v.gain.exponentialRampToValueAtTime(.0001,t+d);
+  o.connect(v).connect(c.destination); o.start(t); o.stop(t+d+.05);
+}
+function noise(d=.6,g=.12){
+  if(!soundOn) return; const c=ac(); if(!c) return;
+  const b=c.createBuffer(1,c.sampleRate*d,c.sampleRate), ch=b.getChannelData(0);
+  for(let i=0;i<ch.length;i++) ch[i]=(Math.random()*2-1)*(Math.random()<.3?1:.25);
+  const s=c.createBufferSource(), f=c.createBiquadFilter(), v=c.createGain();
+  f.type='bandpass'; f.frequency.value=1800; f.Q.value=.7; v.gain.value=g;
+  v.gain.setValueAtTime(g,c.currentTime); v.gain.exponentialRampToValueAtTime(.0001,c.currentTime+d);
+  s.buffer=b; s.connect(f).connect(v).connect(c.destination); s.start();
+}
+const sfx = {
+  tap:()=>tone(720,.06,'sine',.07),
+  untap:()=>tone(480,.06,'sine',.05),
+  right:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.35,'triangle',.07,i*.08)),
+  wrong:()=>{tone(160,.16,'square',.04);tone(130,.2,'square',.04,.12)},
+  glitch:()=>noise(.7,.14),
+  shimmer:()=>[262,330,392,523,659].forEach((f,i)=>tone(f,3.2,'sine',.035,i*.12,.9))
+};
+$('soundBtn').onclick=()=>{ soundOn=!soundOn; $('soundBtn').textContent=soundOn?'Sound on':'Sound off'; $('soundBtn').setAttribute('aria-pressed',soundOn); };
+
+/* keep screen awake while recording */
+let wakeAsked=false;
+function keepAwake(){ if(wakeAsked) return; wakeAsked=true; try{ navigator.wakeLock?.request('screen').catch(()=>{}); }catch(e){} }
+
+/* ===== build tiles ===== */
+START_ORDER.forEach(w=>{
+  const b=document.createElement('button'); b.className='tile'; b.textContent=w; b.dataset.w=w;
+  b.addEventListener('click',()=>toggle(w)); els[w]=b;
+});
+
+function fitTiles(){
+  Object.values(els).forEach(el=>{
+    el.style.fontSize=''; let s=parseFloat(getComputedStyle(el).fontSize);
+    while(el.scrollWidth>el.clientWidth && s>9){ s-=.5; el.style.fontSize=s+'px'; }
+  });
+}
+
+function flipRender(){
+  const before={}; order.forEach(w=>{ if(els[w].isConnected) before[w]=els[w].getBoundingClientRect(); });
+  $('grid').replaceChildren(...order.map(w=>els[w]));
+  if(reduced) return;
+  order.forEach(w=>{
+    const a=before[w]; if(!a) return; const b=els[w].getBoundingClientRect();
+    const dx=a.left-b.left, dy=a.top-b.top; if(!dx&&!dy) return;
+    els[w].style.transition='none'; els[w].style.transform=`translate(${dx}px,${dy}px)`;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      els[w].style.transition='transform .38s cubic-bezier(.3,.8,.3,1)'; els[w].style.transform='';
+      setTimeout(()=>{ els[w].style.transition=''; },420);
+    }));
+  });
+}
+
+function syncUI(){
+  order.forEach(w=>els[w].classList.toggle('sel',selected.has(w)));
+  $('submitBtn').disabled = selected.size!==4 || busy;
+  $('clearBtn').disabled = selected.size===0 || busy;
+  $('shuffleBtn').disabled = busy;
+}
+
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>t.classList.remove('on'),1500); }
+
+function toggle(w){
+  if(busy) return; keepAwake(); ac();
+  if(selected.has(w)){ selected.delete(w); sfx.untap(); }
+  else if(selected.size<4){ selected.add(w); sfx.tap(); }
+  syncUI();
+}
+
+function addBar(gi){
+  const g=GROUPS[gi], d=document.createElement('div');
+  d.className='bar'; d.style.background=g.color;
+  d.innerHTML=`<b></b><span></span>`; d.querySelector('b').textContent=g.label; d.querySelector('span').textContent=g.phrase;
+  $('solved').appendChild(d);
+}
+
+async function solveGroup(gi){
+  const ws=order.filter(w=>groupOf[w]===gi);
+  ws.forEach(w=>els[w].classList.add('sel'));
+  if(!reduced){
+    for(const w of ws){ els[w].classList.remove('jump'); void els[w].offsetWidth; els[w].classList.add('jump'); await sleep(90); }
+    await sleep(260);
+    ws.forEach(w=>els[w].classList.add('out')); await sleep(170);
+  }
+  ws.forEach(w=>{ els[w].classList.remove('out','sel','jump'); });
+  solved.push(gi); ws.forEach(w=>selected.delete(w));
+  order=order.filter(w=>groupOf[w]!==gi);
+  const before={}; order.forEach(w=>before[w]=els[w].getBoundingClientRect());
+  addBar(gi); sfx.right(); flipRender();
+}
+
+async function submit(){
+  if(busy||selected.size!==4) return;
+  const ws=[...selected], key=[...ws].sort().join('|');
+  if(guessed.has(key)){ toast('Already guessed!'); return; }
+  guessed.add(key);
+  const counts={}; ws.forEach(w=>counts[groupOf[w]]=(counts[groupOf[w]]||0)+1);
+  const best=Math.max(...Object.values(counts));
+  busy=true; syncUI();
+  if(best===4){
+    await solveGroup(groupOf[ws[0]]);
+    busy=false; syncUI();
+    if(solved.length===GROUPS.length) win();
+    return;
+  }
+  sfx.wrong();
+  ws.forEach(w=>{ els[w].classList.remove('shake'); void els[w].offsetWidth; els[w].classList.add('shake'); });
+  toast(best===3?'One away…':'Not quite. Try again.');
+  mistakes--; const dots=$('dots').children; if(dots[mistakes]) dots[mistakes].classList.add('gone');
+  await sleep(420); ws.forEach(w=>els[w].classList.remove('shake'));
+  busy=false; syncUI();
+  if(mistakes<=0){
+    busy=true; syncUI(); toast("Here's the plan!"); selected.clear(); syncUI();
+    await sleep(900);
+    for(const g of GROUPS.map((_,i)=>i).filter(i=>!solved.includes(i))){ await solveGroup(g); await sleep(450); }
+    win();
+  }
+}
+
+/* ===== glitch transition ===== */
+async function glitchTo(target, dur=780){
+  const ov=$('glitch'); ov.hidden=false; ov.replaceChildren();
+  if(reduced){ return; }
+  sfx.glitch();
+  const r=target.getBoundingClientRect(), n=9, slices=[];
+  for(let i=0;i<n;i++){
+    const s=document.createElement('div'); s.className='slice';
+    Object.assign(s.style,{left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px'});
+    const c=target.cloneNode(true); c.removeAttribute('id'); c.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));
+    c.style.margin='0'; c.style.background='var(--bg)'; s.appendChild(c); ov.appendChild(s); slices.push(s);
+  }
+  const t0=performance.now();
+  await new Promise(res=>{
+    const step=()=>{
+      const p=(performance.now()-t0)/dur;
+      slices.forEach(s=>{
+        const top=Math.random()*100, h=2+Math.random()*(6+p*18);
+        s.style.clipPath=`inset(${top}% 0 ${Math.max(0,100-top-h)}% 0)`;
+        s.style.transform=`translateX(${(Math.random()-.5)*(40+p*160)}px)`;
+        s.style.filter=Math.random()<.5?'drop-shadow(4px 0 0 #ff2a5f) drop-shadow(-4px 0 0 #2ae6ff)':'hue-rotate('+(Math.random()*90)+'deg) saturate(2)';
+      });
+      target.style.transform=`skewX(${(Math.random()-.5)*p*14}deg) translateX(${(Math.random()-.5)*p*24}px)`;
+      target.style.opacity=String(1-p*.6);
+      if(p<1) setTimeout(()=>requestAnimationFrame(step),45); else res();
+    };
+    step();
+  });
+}
+function clearGlitch(target){ const ov=$('glitch'); ov.replaceChildren(); ov.hidden=true; target.style.transform=''; target.style.opacity=''; }
+
+/* ===== finale ===== */
+function clearFinaleTimers(){ finaleTimers.forEach(clearTimeout); finaleTimers=[]; }
+function at(ms,fn){ finaleTimers.push(setTimeout(fn,ms)); }
+function playFinale(){
+  clearFinaleTimers();
+  const F=$('finale'); F.hidden=false;
+  document.querySelectorAll('#finale .rev').forEach(e=>e.classList.remove('in'));
+  $('sceneA').classList.remove('gone'); $('sceneB').classList.add('gone');
+  $('fCtrl').classList.remove('on'); $('sweep').classList.remove('go');
+  at(250, ()=>{ $('fDate').classList.add('in'); sfx.shimmer(); });
+  at(1400,()=>$('fTitle').classList.add('in'));
+  at(2300,()=>$('fSave').classList.add('in'));
+  at(3100,()=>$('fMeta').classList.add('in'));
+  at(5600,()=>{ $('sweep').classList.remove('go'); void $('sweep').offsetWidth; $('sweep').classList.add('go'); $('sceneA').classList.add('gone'); });
+  at(6200,()=>{ $('sceneB').classList.remove('gone'); $('fLink').classList.add('in'); tone(784,1.6,'sine',.04,0,.4); tone(1175,1.8,'sine',.03,.15,.5); });
+  at(7100,()=>$('fCta').classList.add('in'));
+  at(8000,()=>$('fJub').classList.add('in'));
+  at(9600,()=>$('fCtrl').classList.add('on'));
+}
+async function win(){
+  busy=true; syncUI();
+  await sleep(1300);
+  const app=$('app');
+  await glitchTo(app);
+  playFinale();
+  clearGlitch(app);
+}
+
+/* ===== demo / recording tools ===== */
+async function demo(){
+  if(busy) return; showTab('game'); keepAwake(); ac();
+  selected.clear(); syncUI(); await sleep(500);
+  for(let gi=0; gi<GROUPS.length; gi++){
+    if(solved.includes(gi)) continue;
+    for(const w of GROUPS[gi].words){ toggle(w); await sleep(380); }
+    await sleep(350); await submit(); await sleep(500);
+  }
+}
+
+/* ===== tabs ===== */
+function showTab(t){
+  $('tabGame').setAttribute('aria-selected',t==='game'); $('tabHints').setAttribute('aria-selected',t!=='game');
+  $('gameView').hidden = t!=='game'; $('gameView').style.display = 'flex'; $('hintView').hidden = t==='game';
+  if(t==='game') requestAnimationFrame(fitTiles);
+}
+$('tabGame').onclick=()=>showTab('game');
+$('tabHints').onclick=()=>showTab('hints');
+
+/* ===== reset ===== */
+function reset(){
+  clearFinaleTimers(); $('finale').hidden=true;
+  order=[...START_ORDER]; selected=new Set(); solved=[]; mistakes=4; guessed=new Set(); busy=false;
+  $('solved').replaceChildren(); [...$('dots').children].forEach(d=>d.classList.remove('gone'));
+  Object.values(els).forEach(e=>e.className='tile');
+  $('grid').replaceChildren(...order.map(w=>els[w])); syncUI(); showTab('game');
+}
+
+$('shuffleBtn').onclick=()=>{ if(busy) return; for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];} flipRender(); syncUI(); };
+$('clearBtn').onclick=()=>{ selected.clear(); syncUI(); };
+$('submitBtn').onclick=submit;
+$('demoBtn').onclick=()=>{ reset(); demo(); };
+$('finaleBtn').onclick=()=>{ ac(); playFinale(); };
+$('resetBtn').onclick=reset;
+$('againBtn').onclick=playFinale;
+$('restartBtn').onclick=reset;
+
+reset();
+(document.fonts?.ready||Promise.resolve()).then(fitTiles);
+addEventListener('resize',()=>{ clearTimeout(fitTiles.t); fitTiles.t=setTimeout(fitTiles,120); });
+</script>
+
+</body></html>
